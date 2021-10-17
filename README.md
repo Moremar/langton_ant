@@ -23,7 +23,7 @@ brew install python3
 brew install python-tk
 ```
 
-Then the program can be ran with :
+Then the program can be started with :
 ```
 python ./langton_ant.py
 ```
