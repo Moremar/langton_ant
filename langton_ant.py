@@ -7,17 +7,36 @@ BLACK = "black"
 RED = "red"
 BLUE = "lightblue"
 
+
+def get_flipped_color(color):
+    if color == BLACK:
+        return WHITE
+    if color == WHITE or color == BLUE:
+        return BLACK
+    raise Exception("Unknown color : " + color)
+
+
 # directions
 UP = 0
 RIGHT = 1
 DOWN = 2
 LEFT = 3
 
+
+def right_dir(direction):
+    return (direction + 1) % 4  # since directions are numbered from 0 to 3
+
+
+def left_dir(direction):
+    return (direction - 1) % 4  # since directions are numbered from 0 to 3
+
+
 # TK config
-X_CELLS = 91
-Y_CELLS = 61
-CELL_SIZE = 12
-SLEEP_TIME = 1  # time in ms between 2 moves
+X_CELLS = 71
+Y_CELLS = 51
+CELL_SIZE = 13
+SLEEP_TIME = 1     # time in ms between 2 moves
+DEFAULT_SPEED = 1  # number of moves before a sleep
 
 
 class Cell:
@@ -44,6 +63,7 @@ class App(Tk):
         self.stopped = False    # user interrupted the run
         self.running = False    # currently running (avoid multiple callbacks)
         self.steps = 0
+        self.speed = DEFAULT_SPEED
 
         if X_CELLS % 2 == 0 or Y_CELLS % 2 == 0:
             raise Exception("The number of cells in both directions must be odd.")
@@ -75,7 +95,7 @@ class App(Tk):
             for j in range(0, Y_CELLS):
                 cell = self.canvas.create_rectangle(
                     5 + i * CELL_SIZE + 1, 5 + j * CELL_SIZE + 1,
-                    (i+1) * CELL_SIZE + 5, 5 + (j+1) * CELL_SIZE,
+                    (i + 1) * CELL_SIZE + 5, 5 + (j + 1) * CELL_SIZE,
                     fill=BLUE, outline="")
                 self.cells[(i, j)] = Cell(cell, i, j)
 
@@ -83,8 +103,8 @@ class App(Tk):
         self.x0 = math.trunc(X_CELLS / 2)
         self.y0 = math.trunc(Y_CELLS / 2)
         ant_widget = self.canvas.create_oval(
-            5 + self.x0 * CELL_SIZE + 1 + 1,    5 + self.y0 * CELL_SIZE + 1 + 1,
-            5 + (self.x0 + 1) * CELL_SIZE - 1,  5 + (self.y0 + 1) * CELL_SIZE - 1,
+            5 + self.x0 * CELL_SIZE + 1 + 1, 5 + self.y0 * CELL_SIZE + 1 + 1,
+            5 + (self.x0 + 1) * CELL_SIZE - 1, 5 + (self.y0 + 1) * CELL_SIZE - 1,
             fill=RED, outline="")
         self.ant = Ant(ant_widget, self.x0, self.y0)
 
@@ -101,6 +121,19 @@ class App(Tk):
         self.stop_button.pack(side="left")
         self.reset_button = Button(self, text="Reset", command=self.reset_button_click)
         self.reset_button.pack(side="left")
+
+        # speed adjustment
+        var = IntVar()
+        var.set(DEFAULT_SPEED)
+
+        def update_speed():
+            self.speed = var.get()
+
+        Label(self, text=' ', padx=20).pack(side='left')  # spacer
+        Label(self, text="Speed : ").pack(side="left")
+        Radiobutton(self, text="x1", variable=var, value=1, command=update_speed).pack(side="left")
+        Radiobutton(self, text="x5", variable=var, value=5, command=update_speed).pack(side="left")
+        Radiobutton(self, text="x10", variable=var, value=10, command=update_speed).pack(side="left")
 
         # steps count
         self.steps_label1 = Label(self, text="Step : ")
@@ -134,7 +167,7 @@ class App(Tk):
         direction = self.get_next_dir()
         (next_x, next_y) = self.get_next_cell(direction)
         if not 0 <= next_x < X_CELLS or not 0 <= next_y < Y_CELLS:
-            return False    # out of grid
+            return False  # out of grid
         else:
             dx = (next_x - self.ant.x) * CELL_SIZE
             dy = (next_y - self.ant.y) * CELL_SIZE
@@ -148,8 +181,8 @@ class App(Tk):
 
     def set_cell_color(self, x, y, color):
         cell = self.cells[(x, y)]
-        cell.color = color           # logical flip
-        self.canvas.itemconfigure(cell.widget, fill=color)  # physical flip
+        cell.color = color  # logical flip
+        self.canvas.itemconfigure(cell.widget, fill=color)  # visual flip
 
     def flip_cell_color(self, x, y):
         cell = self.cells[(x, y)]
@@ -166,7 +199,9 @@ class App(Tk):
     def start_play_loop(self):
         if self.finished or self.stopped:
             return
-        moved = self.next_turn()
+        moved = False
+        for _ in range(self.speed):
+            moved = self.next_turn()
         if moved:
             self.after(SLEEP_TIME, self.start_play_loop)
         else:
@@ -203,26 +238,10 @@ class App(Tk):
         self.ant.x = self.x0
         self.ant.y = self.y0
         self.ant.dir = UP
-        #reset flags
+        # reset flags
         self.stopped = False
         self.finished = False
         self.running = False
-
-
-def right_dir(direction):
-    return (direction + 1) % 4    # since directions are numbered from 0 to 3
-
-
-def left_dir(direction):
-    return (direction - 1) % 4    # since directions are numbered from 0 to 3
-
-
-def get_flipped_color(color):
-    if color == BLACK:
-        return WHITE
-    if color == WHITE or color == BLUE:
-        return BLACK
-    raise Exception("Unknown color : " + color)
 
 
 app = App()
